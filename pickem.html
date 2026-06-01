@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CS2 Major Pick'Em Simulator — Stage 1</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#1a1d23;color:#e0e0e0;min-height:100vh;overflow:hidden}
+::selection{background:#4fc3f7;color:#1a1d23}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#1a1d23}
+::-webkit-scrollbar-thumb{background:#3d4854;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#4fc3f7}
+
+.header{background:#2d3844;padding:10px 24px;border-bottom:2px solid #3d4854;display:flex;justify-content:space-between;align-items:center;z-index:10;position:relative}
+.header-left h1{font-size:1.25rem;color:#fff;letter-spacing:0.02em}
+.header-left h1 .accent{color:#4fc3f7}
+.header-left .subtitle{font-size:0.72rem;color:#929a9e;margin-top:2px}
+.header-right{display:flex;gap:10px;align-items:center}
+.btn{background:#4fc3f7;color:#1a1d23;border:none;padding:7px 16px;border-radius:5px;font-size:0.8rem;font-weight:600;cursor:pointer;transition:background 0.15s,transform 0.1s;white-space:nowrap}
+.btn:hover{background:#39b5e7}
+.btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+.btn-secondary{background:#3d4854;color:#e0e0e0}
+.btn-secondary:hover{background:#4d5a6a}
+.btn-sm{padding:5px 10px;font-size:0.72rem}
+.btn-accent{background:transparent;border:1px solid #4fc3f7;color:#4fc3f7}
+.btn-accent:hover{background:#4fc3f720}
+
+.layout{display:flex;height:calc(100vh - 53px)}
+.sidebar{width:310px;min-width:310px;background:#21252b;padding:14px 16px;overflow-y:auto;border-right:1px solid #2d333b;display:flex;flex-direction:column;gap:0}
+.main{flex:1;padding:16px 20px;overflow-y:auto}
+
+.section-title{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#6a737d;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #2d333b;font-weight:600}
+.section-title:first-child{margin-top:0}
+
+.param-group{margin-bottom:14px}
+.param-group:last-child{margin-bottom:0}
+.param-label{font-size:0.78rem;margin-bottom:2px;display:flex;justify-content:space-between;font-weight:500}
+.param-label span.val{color:#4fc3f7;font-weight:600;font-size:0.78rem}
+.param-desc{font-size:0.68rem;color:#6a737d;margin-bottom:4px;line-height:1.45}
+input[type=range]{width:100%;height:4px;accent-color:#4fc3f7;cursor:pointer;margin:2px 0}
+input[type=range]:hover{accent-color:#39b5e7}
+
+.team-row{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:0.82rem;cursor:pointer;border-radius:4px;transition:background 0.12s;border:1px solid transparent}
+.team-row:hover{background:#2d333b}
+.team-row.override{border-color:#ffd93d50;background:#ffd93d08}
+.team-rank{color:#6a737d;width:24px;text-align:right;font-size:0.7rem;flex-shrink:0}
+.team-name{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:0.82rem}
+.team-rating{color:#4fc3f7;width:54px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0}
+.team-bar{flex:1;height:4px;background:#2d333b;border-radius:2px;max-width:70px;flex-shrink:0}
+.team-bar-fill{height:100%;border-radius:2px;transition:width 0.3s ease}
+
+.tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid #2d333b}
+.tab{padding:7px 15px;font-size:0.82rem;cursor:pointer;border-bottom:2px solid transparent;color:#6a737d;transition:color 0.15s,border-color 0.15s;font-weight:500}
+.tab.active{border-bottom-color:#4fc3f7;color:#e0e0e0}
+.tab:hover{color:#c0c0c0}
+
+.result-header{display:flex;align-items:center;gap:12px;padding:3px 0;font-size:0.72rem;color:#6a737d;text-transform:uppercase;letter-spacing:0.05em}
+.result-header span:nth-child(1){width:22px;text-align:center}
+.result-header span:nth-child(2){width:150px}
+.result-header span:nth-child(3){width:56px;text-align:right}
+.result-row{display:flex;align-items:center;gap:12px;padding:5px 0;border-bottom:1px solid #1e2228;font-size:0.83rem;transition:background 0.1s}
+.result-row:hover{background:#21252b}
+.result-rank{width:22px;color:#6a737d;text-align:center;font-weight:700;font-size:0.78rem}
+.result-name{width:150px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-pct{width:56px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.result-bar{flex:1;height:20px;background:#2d333b;border-radius:4px;overflow:hidden}
+.result-bar-fill{height:100%;min-width:2px;border-radius:4px;transition:width 0.35s ease;display:flex;align-items:center;padding-left:6px;font-size:0.68rem;color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,0.6)}
+
+.progress-container{margin:10px 0;display:none}
+.progress-bar{height:5px;background:#2d333b;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#4fc3f7,#29b6f6);width:0%;transition:width 0.15s linear;border-radius:3px}
+.progress-text{text-align:center;font-size:0.74rem;color:#6a737d;margin-top:3px;font-variant-numeric:tabular-nums}
+.progress-percent{color:#4fc3f7;font-weight:600}
+
+.data-table{width:100%;font-size:0.8rem;border-collapse:collapse}
+.data-table th{text-align:left;padding:6px 8px;color:#6a737d;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #2d333b;position:sticky;top:0;background:#1a1d23;z-index:1}
+.data-table td{padding:5px 8px;border-bottom:1px solid #1e2228}
+.data-table tbody tr:hover{background:#21252b}
+.data-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.data-table .rating-cell{color:#4fc3f7;font-weight:600}
+.data-table .plr-cell{font-size:0.72rem;color:#788088}
+.data-table .wr-badge{padding:1px 6px;border-radius:3px;font-size:0.68rem;font-weight:600}
+.data-table .wr-good{background:#2e7d3220;color:#66bb6a}
+.data-table .wr-ok{background:#f9a82520;color:#fdd835}
+.data-table .wr-bad{background:#c6282820;color:#ef5350}
+
+#override-panel{display:none;margin-top:8px;padding:10px 12px;background:#21252b;border-radius:6px;border:1px solid #2d333b}
+#override-panel.show{display:block}
+#override-panel input[type=number]{width:80px;background:#1a1d23;border:1px solid #3d4854;color:#e0e0e0;padding:5px 8px;border-radius:4px;font-size:0.85rem;text-align:center;font-weight:600}
+#override-panel input[type=number]:focus{outline:none;border-color:#4fc3f7;box-shadow:0 0 0 2px #4fc3f720}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:0.72rem;color:#6a737d;margin-top:8px}
+.stats-grid div{display:flex;justify-content:space-between;padding:1px 0}
+.stats-grid div span:last-child{color:#c0c0c0;font-weight:500;font-variant-numeric:tabular-nums}
+
+.empty-state{color:#6a737d;padding:32px 20px;text-align:center;font-size:0.85rem;line-height:1.5}
+.empty-state .icon{font-size:2rem;margin-bottom:8px;opacity:0.3}
+
+.runs-badge{font-size:0.68rem;color:#6a737d;text-align:center;margin-top:4px}
+.runs-badge span{color:#c0c0c0}
+
+.fade-in{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.pulse{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+@media(max-width:900px){
+  .layout{flex-direction:column}
+  .sidebar{width:100%;min-width:100%;max-height:340px;border-right:none;border-bottom:1px solid #2d333b}
+  .main{height:auto}
+  body{overflow:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1><span class="accent">CS2</span> Major Pick'Em Simulator</h1>
+    <div class="subtitle">IEM Cologne 2026 — Stage 1 (Opening Stage) · 16 Teams · Real HLTV Data · First matches: Jun 2</div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-sm" onclick="exportCSV()" id="export-btn">⬇ Export CSV</button>
+    <button class="btn btn-sm btn-secondary" onclick="toggleOverridePanel()" id="edit-btn">✎ Override Ratings</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ─── SIDEBAR ──────────────────────────────────── -->
+  <div class="sidebar">
+    <div class="section-title">Simulation Parameters</div>
+
+    <div class="param-group">
+      <div class="param-label">Simulations <span class="val" id="sims-val">50,000</span></div>
+      <input type="range" min="1000" max="200000" step="1000" value="50000" oninput="onSlider()" id="n_sims">
+      <div class="param-desc">More sims = more stable results. 50k gives ~0.2% margin of error.</div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-label">Rating Scale <span class="val" id="scale-val">4.0</span></div>
+      <input type="range" min="15" max="100" step="1" value="40" oninput="onSlider()" id="rating_scale">
+      <div class="param-desc">How much rating gaps matter in win probability. Lower = bigger favorites. A 0.1 gap at 4.0 = ~60% win chance.</div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-label">BO1 Upset Factor <span class="val" id="upset-val">0.04</span></div>
+      <input type="range" min="0" max="15" step="1" value="4" oninput="onSlider()" id="bo1_upset">
+      <div class="param-desc">Extra random noise in Best-of-1 matches. BO1s are volatile — a hot pistol round can decide a map. 0.10 = very chaotic.</div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-label">BO3 Series Weight <span class="val" id="bo3-val">1.8</span></div>
+      <input type="range" min="10" max="30" step="1" value="18" oninput="onSlider()" id="bo3_weight">
+      <div class="param-desc">How much a Best-of-3 amplifies the better team's edge. 1.0 = just three BO1s. 2.0 = favorites dominate series.</div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-label">Rank Weight <span class="val" id="rw-val">0.70</span></div>
+      <input type="range" min="0" max="100" step="1" value="70" oninput="onSlider()" id="weight_ranking">
+      <div class="param-desc">How much HLTV world ranking matters vs player stats &amp; recent win rate. 1.0 = pure ranking. 0.0 = only player ratings &amp; recent form.</div>
+    </div>
+
+    <button class="btn" onclick="runSim()" id="run-btn">▶ Run Simulation</button>
+
+    <div class="progress-container" id="progress-container">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-text" id="progress-text">Running… <span class="progress-percent" id="progress-pct">0%</span></div>
+    </div>
+
+    <div class="stats-grid" id="stats-grid"></div>
+  </div>
+
+  <!-- ─── MAIN PANEL ───────────────────────────────── -->
+  <div class="main">
+    <div class="section-title">Teams — Click to override rating</div>
+    <div id="team-list" style="margin-bottom:8px"></div>
+
+    <div id="override-panel">
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem" id="override-content"></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('results')">Results</div>
+      <div class="tab" onclick="switchTab('data')">Team Data</div>
+    </div>
+
+    <div id="results-panel">
+      <div id="results-content">
+        <div class="empty-state">
+          <div class="icon">🎯</div>
+          <div>Press <strong style="color:#4fc3f7">Run Simulation</strong> to see advancement probabilities</div>
+          <div style="font-size:0.72rem;margin-top:4px">8 of 16 teams qualify for the Elimination Stage</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="data-panel" style="display:none">
+      <div id="team-data-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  TEAM DATA (from app.py DEFAULT_TEAMS)
+// ═══════════════════════════════════════════════════════
+const DEFAULT_TEAMS = {
+  "GamerLegion":       {rank:11, plr:[1.04,1.10,1.13,1.03,0.89], wr:0.580},
+  "B8":                {rank:15, plr:[1.16,0.99,1.04,1.03,0.98], wr:0.550},
+  "BetBoom":           {rank:17, plr:[1.06,1.16,0.98,1.10,1.01], wr:0.620},
+  "MIBR":              {rank:20, plr:[1.08,1.20,1.25,1.02,1.06], wr:0.700},
+  "M80":               {rank:24, plr:[1.13,1.14,1.06,1.15,1.04], wr:0.556},
+  "HEROIC":            {rank:25, plr:[1.09,1.10,1.00,0.95,0.99], wr:0.500},
+  "Liquid":            {rank:26, plr:[1.14,1.05,1.09,0.88,1.02], wr:0.460},
+  "TYLOO":             {rank:29, plr:[1.19,1.09,1.12,1.12,1.08], wr:0.610},
+  "Lynn Vision":       {rank:31, plr:[1.11,1.16,1.10,1.04,1.01], wr:0.580},
+  "SINNERS":           {rank:32, plr:[1.06,0.99,1.10,1.11,1.09], wr:0.570},
+  "NRG":               {rank:33, plr:[1.12,1.06,1.13,1.11,1.03], wr:0.640},
+  "BIG":               {rank:38, plr:[1.10,1.10,1.17,1.25,1.06], wr:0.660},
+  "Sharks":            {rank:50, plr:[1.07,1.11,1.16,1.14,1.07], wr:0.580},
+  "FlyQuest":          {rank:56, plr:[1.09,1.08,1.04,1.13,1.13], wr:0.583},
+  "Gaimin Gladiators": {rank:60, plr:[1.11,0.92,1.05,1.21,0.98], wr:0.510},
+  "THUNDER dOWNUNDER": {rank:70, plr:[1.20,1.23,1.05,1.23,1.03], wr:0.783},
+};
+
+// ═══════════════════════════════════════════════════════
+//  DEFAULT CONFIGURATION (matches app.py DEFAULT_CONFIG)
+// ═══════════════════════════════════════════════════════
+const DEFAULT_CONFIG = {
+  rating_max: 1.40,
+  rating_min: 0.65,
+  weight_ranking: 0.70,
+  rating_scale: 4.0,
+  bo1_upset: 0.04,
+  bo3_weight: 1.8,
+  n_sims: 50000,
+};
+
+// ═══════════════════════════════════════════════════════
+//  ROUND 1 MATCHUPS (from app.py ROUND1_MATCHUPS)
+// ═══════════════════════════════════════════════════════
+const ROUND1_MATCHUPS = [
+  ["GamerLegion","NRG"],
+  ["B8","TYLOO"],
+  ["HEROIC","Sharks"],
+  ["BetBoom","Gaimin Gladiators"],
+  ["BIG","Liquid"],
+  ["M80","Lynn Vision"],
+  ["MIBR","THUNDER dOWNUNDER"],
+  ["SINNERS","FlyQuest"],
+];
+
+// Color palette for result bars
+const COLORS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#845ef7','#20c997','#f06595',
+                '#339af0','#fcc419','#51cf66','#ff6b6b','#748ffc','#ff8787','#63e6be','#e599f7'];
+
+// Global state
+let overrides = {};
+let results = [];
+let lastRunConfig = null;
+let teamRatingCache = {};
+
+// ═══════════════════════════════════════════════════════
+//  RATING COMPUTATION (exact match to app.py)
+// ═══════════════════════════════════════════════════════
+function computeRating(name, data, cfg, overridesMap) {
+  if (overridesMap && overridesMap[name] !== undefined) {
+    return overridesMap[name];
+  }
+  const rank = data.rank;
+  const rmax = cfg.rating_max;
+  const rmin = cfg.rating_min;
+  // Scale k by weight_ranking: full rank spread at 1.0, no spread at 0.0
+  const k0 = Math.log(rmax / rmin) / 74.0;
+  const k = k0 * (cfg.weight_ranking !== undefined ? cfg.weight_ranking : 0.70);
+  let base = rmax * Math.exp(-k * (rank - 1));
+
+  let adj = 0;
+  if (data.plr && data.plr.length > 0) {
+    const avgP = data.plr.reduce((s,v) => s + v, 0) / data.plr.length;
+    const playerAdj = (avgP - 1.05) * 0.04;
+    const wrAdj = ((data.wr !== undefined ? data.wr : 0.5) - 0.50) * 0.03;
+    adj = clamp(playerAdj + wrAdj, -0.04, 0.04);
+  }
+
+  return parseFloat((base + adj).toFixed(4));
+}
+
+function getCurrentConfig() {
+  return {
+    rating_max: 1.40,
+    rating_min: 0.65,
+    weight_ranking: parseFloat(document.getElementById('weight_ranking').value) / 100,
+    rating_scale: parseFloat(document.getElementById('rating_scale').value) / 10,
+    bo1_upset: parseInt(document.getElementById('bo1_upset').value) / 100,
+    bo3_weight: parseFloat(document.getElementById('bo3_weight').value) / 10,
+    n_sims: parseInt(document.getElementById('n_sims').value),
+  };
+}
+
+function getAllTeamRatings(cfg) {
+  const ratings = {};
+  for (const [name, data] of Object.entries(DEFAULT_TEAMS)) {
+    ratings[name] = computeRating(name, data, cfg, overrides);
+  }
+  return ratings;
+}
+
+function getTeamObjects(cfg) {
+  const ratings = getAllTeamRatings(cfg);
+  const objs = [];
+  for (const [name, data] of Object.entries(DEFAULT_TEAMS)) {
+    objs.push({ name, rating: ratings[name], rank: data.rank, data });
+  }
+  objs.sort((a, b) => b.rating - a.rating);
+  return objs;
+}
+
+// ═══════════════════════════════════════════════════════
+//  MATCH SIMULATION
+// ═══════════════════════════════════════════════════════
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function clamp01(v) { return clamp(v, 0.01, 0.99); }
+
+function winProb(rA, rB, scale) {
+  return 1.0 / (1.0 + Math.exp(-scale * (rA - rB)));
+}
+
+function simBO1(teamA, teamB, cfg) {
+  let p = winProb(teamA.rating, teamB.rating, cfg.rating_scale);
+  p += (Math.random() * 2 - 1) * cfg.bo1_upset;
+  return Math.random() < clamp01(p) ? teamA : teamB;
+}
+
+function simBO3(teamA, teamB, cfg) {
+  let wa = 0, wb = 0;
+  while (wa < 2 && wb < 2) {
+    let p = winProb(teamA.rating, teamB.rating, cfg.rating_scale);
+    p = 0.5 + (p - 0.5) * cfg.bo3_weight;
+    if (Math.random() < clamp01(p)) wa++;
+    else wb++;
+  }
+  return wa === 2 ? teamA : teamB;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SWISS SIMULATION
+// ═══════════════════════════════════════════════════════
+function runSwiss(teams, cfg) {
+  const teamMap = {};
+  teams.forEach(t => { teamMap[t.name] = t; });
+
+  const records = {};
+  const getRec = (name) => records[name] || { w: 0, l: 0, played: 0 };
+  const setRec = (name, w, l) => { records[name] = { w, l, played: (records[name]?.played || 0) + 1 }; };
+
+  // Round 1 — fixed HLTV matchups
+  for (const [aName, bName] of ROUND1_MATCHUPS) {
+    if (!teamMap[aName] || !teamMap[bName]) continue;
+    const wnr = simBO1(teamMap[aName], teamMap[bName], cfg);
+    const loser = wnr.name === aName ? bName : aName;
+    setRec(wnr.name, 1, 0);
+    setRec(loser, 0, 1);
+  }
+
+  function filterActive() {
+    const active = [];
+    for (const t of teams) {
+      const r = getRec(t.name);
+      if (r.w < 3 && r.l < 3) active.push(t.name);
+    }
+    return active;
+  }
+
+  // Rounds 2–5
+  for (let rnd = 2; rnd <= 5; rnd++) {
+    const active = filterActive();
+    if (active.length === 0) break;
+
+    // Group by record
+    const groups = {};
+    for (const name of active) {
+      const r = getRec(name);
+      const key = r.w + '-' + r.l;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(name);
+    }
+
+    for (const [key, names] of Object.entries(groups)) {
+      if (names.length < 2) continue;
+      const [w, l] = key.split('-').map(Number);
+      const isBO3 = (rnd >= 3 && (w >= 2 || l >= 2)) || rnd >= 4;
+
+      // Sort by rating desc, shuffle, then sort again (reproduce app.py behavior)
+      const pool = names.slice();
+      pool.sort((a, b) => teamMap[b].rating - teamMap[a].rating);
+      shuffle(pool);
+      pool.sort((a, b) => teamMap[b].rating - teamMap[a].rating);
+
+      for (let i = 0; i + 1 < pool.length; i += 2) {
+        const aName = pool[i], bName = pool[i + 1];
+        const wnr = isBO3 ? simBO3(teamMap[aName], teamMap[bName], cfg) : simBO1(teamMap[aName], teamMap[bName], cfg);
+        const loser = wnr.name === aName ? bName : aName;
+        const rW = getRec(wnr.name);
+        setRec(wnr.name, rW.w + 1, rW.l);
+        const rL = getRec(loser);
+        setRec(loser, rL.w, rL.l + 1);
+      }
+    }
+  }
+
+  return records;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  ASYNC BATCH SIMULATION
+// ═══════════════════════════════════════════════════════
+function runMonteCarlo(teams, cfg) {
+  return new Promise(function(resolve) {
+    const n = cfg.n_sims;
+    const batchSize = Math.max(100, Math.min(2000, Math.floor(n / 30)));
+    const advCount = {};
+    teams.forEach(t => { advCount[t.name] = 0; });
+
+    let completed = 0;
+
+    function processBatch() {
+      const end = Math.min(completed + batchSize, n);
+
+      for (let i = completed; i < end; i++) {
+        const records = runSwiss(teams, cfg);
+        for (const team of teams) {
+          const r = records[team.name];
+          if (r && r.w >= 3) advCount[team.name]++;
+        }
+      }
+
+      completed = end;
+      updateProgress(completed / n);
+
+      if (completed < n) {
+        setTimeout(processBatch, 1);
+      } else {
+        const resultsArr = teams.map(function(t) {
+          return {
+            name: t.name,
+            rating: t.rating,
+            advance: parseFloat(((advCount[t.name] / n) * 100).toFixed(2)),
+            rank: t.rank,
+          };
+        });
+        resultsArr.sort(function(a, b) { return b.advance - a.advance; });
+        resolve(resultsArr);
+      }
+    }
+
+    updateProgress(0);
+    setTimeout(processBatch, 1);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: SLIDERS
+// ═══════════════════════════════════════════════════════
+function onSlider() {
+  document.getElementById('sims-val').textContent = parseInt(document.getElementById('n_sims').value).toLocaleString();
+  document.getElementById('scale-val').textContent = (parseFloat(document.getElementById('rating_scale').value) / 10).toFixed(1);
+  document.getElementById('upset-val').textContent = (parseInt(document.getElementById('bo1_upset').value) / 100).toFixed(2);
+  document.getElementById('bo3-val').textContent = (parseFloat(document.getElementById('bo3_weight').value) / 10).toFixed(1);
+  document.getElementById('rw-val').textContent = (parseFloat(document.getElementById('weight_ranking').value) / 100).toFixed(2);
+  renderTeams();
+  renderTeamData();
+}
+
+function updateProgress(pct) {
+  const fill = document.getElementById('progress-fill');
+  const pctEl = document.getElementById('progress-pct');
+  const textEl = document.getElementById('progress-text');
+  fill.style.width = (pct * 100) + '%';
+  pctEl.textContent = Math.round(pct * 100) + '%';
+  if (pct < 1) {
+    textEl.innerHTML = 'Simulating… <span class="progress-percent" id="progress-pct">' + Math.round(pct * 100) + '%</span>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: TEAM LIST
+// ═══════════════════════════════════════════════════════
+function renderTeams() {
+  const cfg = getCurrentConfig();
+  const el = document.getElementById('team-list');
+  const ratings = getAllTeamRatings(cfg);
+  const sorted = Object.entries(ratings).sort((a,b) => b[1] - a[1]);
+
+  el.innerHTML = sorted.map(function([name, rating], i) {
+    const hasOverride = overrides[name] !== undefined;
+    const pct = Math.max(3, Math.min(95, ((rating - 0.60) / 0.85) * 100));
+    const color = COLORS[i % COLORS.length];
+    const cls = 'team-row' + (hasOverride ? ' override' : '');
+    const star = hasOverride ? ' *' : '';
+    const escaped = name.replace(/'/g, "\\'");
+    return '<div class="' + cls + '" onclick="openOverride(\'' + escaped + '\')" title="Click to override rating">' +
+      '<span class="team-rank">#' + DEFAULT_TEAMS[name].rank + '</span>' +
+      '<span class="team-name">' + name + '</span>' +
+      '<span class="team-rating">' + rating.toFixed(3) + star + '</span>' +
+      '<span class="team-bar"><span class="team-bar-fill" style="width:' + pct + '%;background:' + color + '"></span></span>' +
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: OVERRIDE PANEL
+// ═══════════════════════════════════════════════════════
+function openOverride(name) {
+  const panel = document.getElementById('override-panel');
+  const content = document.getElementById('override-content');
+  const cfg = getCurrentConfig();
+  const current = overrides[name] !== undefined ? overrides[name] : computeRating(name, DEFAULT_TEAMS[name], cfg, overrides);
+  const escaped = name.replace(/'/g, "\\'");
+
+  content.innerHTML = '' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+      '<strong style="min-width:140px">' + name + '</strong>' +
+      '<span style="font-size:0.72rem;color:#6a737d">Current:</span>' +
+      '<span style="color:#4fc3f7;font-weight:600;font-variant-numeric:tabular-nums">' + current.toFixed(3) + '</span>' +
+      '<span style="font-size:0.72rem;color:#6a737d">Override:</span>' +
+      '<input type="number" step="0.001" min="0.60" max="1.50" value="' + current.toFixed(3) + '" id="override-val" onchange="applyOverride(\'' + escaped + '\')">' +
+      '<button class="btn btn-sm btn-secondary" onclick="clearOverride(\'' + escaped + '\')">Reset</button>' +
+      '<button class="btn btn-sm" onclick="document.getElementById(\'override-panel\').classList.remove(\'show\')">✕ Close</button>' +
+    '</div>';
+  panel.classList.add('show');
+  document.getElementById('override-val').focus();
+  document.getElementById('override-val').select();
+}
+
+window.applyOverride = function(name) {
+  const val = parseFloat(document.getElementById('override-val').value);
+  if (!isNaN(val) && val >= 0.60 && val <= 1.50) {
+    overrides[name] = parseFloat(val.toFixed(4));
+  }
+  renderTeams();
+  renderTeamData();
+};
+
+window.clearOverride = function(name) {
+  delete overrides[name];
+  renderTeams();
+  renderTeamData();
+  document.getElementById('override-panel').classList.remove('show');
+};
+
+function toggleOverridePanel() {
+  const panel = document.getElementById('override-panel');
+  panel.classList.toggle('show');
+  if (panel.classList.contains('show')) {
+    const content = document.getElementById('override-content');
+    content.innerHTML = '<div style="color:#6a737d;font-size:0.8rem">Click any team in the list above to override its rating. Overridden ratings are marked with <span style="color:#ffd93d">*</span>.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: TEAM DATA TAB
+// ═══════════════════════════════════════════════════════
+function renderTeamData() {
+  const cfg = getCurrentConfig();
+  const el = document.getElementById('team-data-content');
+  const ratings = getAllTeamRatings(cfg);
+
+  let html = '<table class="data-table"><thead><tr>' +
+    '<th>Team</th><th class="num">Rank</th><th class="num">Rating</th><th class="num">Avg Player</th><th class="num">Win Rate (3M)</th><th>Player Ratings (Rating 3.0)</th>' +
+    '</tr></thead><tbody>';
+
+  const sorted = Object.entries(ratings).sort((a,b) => b[1] - a[1]);
+
+  sorted.forEach(function([name, rating]) {
+    const data = DEFAULT_TEAMS[name];
+    if (!data) return;
+    const avgPlr = data.plr ? data.plr.reduce((s,v) => s+v,0) / data.plr.length : null;
+    const wr = data.wr;
+    const plrList = data.plr ? data.plr.map(function(v) { return v.toFixed(2); }).join(', ') : '—';
+
+    let wrBadge = '';
+    if (wr !== null && wr !== undefined) {
+      if (wr >= 0.60) wrBadge = '<span class="wr-badge wr-good">' + (wr*100).toFixed(0) + '%</span>';
+      else if (wr >= 0.50) wrBadge = '<span class="wr-badge wr-ok">' + (wr*100).toFixed(0) + '%</span>';
+      else wrBadge = '<span class="wr-badge wr-bad">' + (wr*100).toFixed(0) + '%</span>';
+    } else {
+      wrBadge = '—';
+    }
+
+    const hasOverride = overrides[name] !== undefined;
+    const star = hasOverride ? ' *' : '';
+
+    html += '<tr>' +
+      '<td><strong>' + name + '</strong></td>' +
+      '<td class="num">#' + data.rank + '</td>' +
+      '<td class="num rating-cell">' + rating.toFixed(3) + star + '</td>' +
+      '<td class="num">' + (avgPlr !== null ? avgPlr.toFixed(3) : '—') + '</td>' +
+      '<td class="num">' + wrBadge + '</td>' +
+      '<td class="plr-cell">' + plrList + '</td>' +
+    '</tr>';
+  });
+
+  html += '</tbody></table>';
+  html += '<div style="font-size:0.68rem;color:#4d5a6a;margin-top:8px;line-height:1.4">Player ratings sourced from HLTV team pages (current roster, Rating 3.0). Win rate reflects last 3 months of matches. Ratings marked with <span style="color:#ffd93d">*</span> have manual overrides applied. Use the Rank Weight slider to adjust how much world ranking influences the computed rating.</div>';
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.toggle('active', t.textContent.toLowerCase().startsWith(tab.toLowerCase()));
+  });
+  document.getElementById('results-panel').style.display = (tab === 'results') ? 'block' : 'none';
+  document.getElementById('data-panel').style.display = (tab === 'data') ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: RUN SIMULATION
+// ═══════════════════════════════════════════════════════
+async function runSim() {
+  const btn = document.getElementById('run-btn');
+  const prog = document.getElementById('progress-container');
+  const statsGrid = document.getElementById('stats-grid');
+
+  if (btn.disabled) return;
+
+  const cfg = getCurrentConfig();
+  const teams = getTeamObjects(cfg);
+  lastRunConfig = cfg;
+
+  btn.disabled = true;
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('progress-text').innerHTML = 'Simulating… <span class="progress-percent" id="progress-pct">0%</span>';
+  prog.style.display = 'block';
+  document.getElementById('results-content').innerHTML = '<div class="empty-state"><div class="icon pulse">⚙</div><div>Running ' + cfg.n_sims.toLocaleString() + ' Monte Carlo simulations…</div></div>';
+  switchTab('results');
+
+  const startWall = performance.now();
+
+  try {
+    results = await runMonteCarlo(teams, cfg);
+    const elapsed = ((performance.now() - startWall) / 1000).toFixed(1);
+
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('progress-text').innerHTML = 'Complete! <span class="progress-percent">' + cfg.n_sims.toLocaleString() + ' sims</span>';
+
+    renderResults();
+    renderStats(cfg, elapsed);
+  } catch (e) {
+    document.getElementById('results-content').innerHTML = '<div class="empty-state"><div style="color:#ff6b6b">Error: ' + e.message + '</div></div>';
+    document.getElementById('progress-text').textContent = 'Error: ' + e.message;
+  }
+
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: RENDER RESULTS
+// ═══════════════════════════════════════════════════════
+function renderResults() {
+  if (!results.length) return;
+  const el = document.getElementById('results-content');
+
+  let html = '<div class="result-header">' +
+    '<span>#</span><span>Team</span><span>Advance</span><span>&nbsp;</span>' +
+    '</div>';
+
+  results.forEach(function(r, i) {
+    const color = COLORS[i % COLORS.length];
+    const qual = r.advance >= 50 ? ' 🟢' : (r.advance >= 30 ? ' 🟡' : '');
+    const barText = r.advance > 12 ? Math.round(r.advance) + '%' : '';
+    html += '<div class="result-row fade-in" style="animation-delay:' + (i * 0.015) + 's">' +
+      '<span class="result-rank">' + (i + 1) + '</span>' +
+      '<span class="result-name">' + r.name + qual + '</span>' +
+      '<span class="result-pct" style="color:' + color + '">' + r.advance.toFixed(1) + '%</span>' +
+      '<span class="result-bar"><span class="result-bar-fill" style="width:' + Math.max(0.5, r.advance) + '%;background:' + color + '">' + barText + '</span></span>' +
+    '</div>';
+
+    if (r.advance >= 98) {
+      html += '<div style="font-size:0.68rem;color:#6bcb77;padding:2px 0 6px 30px">&#x2713; Near-lock for Elimination Stage</div>';
+    } else if (r.advance < 15 && i > 3) {
+      // Only show for lower-ranked teams
+    }
+  });
+
+  el.innerHTML = html;
+}
+
+function renderStats(cfg, elapsed) {
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = '' +
+    '<div><span>Rating Scale</span><span>' + cfg.rating_scale.toFixed(1) + '</span></div>' +
+    '<div><span>BO1 Upset</span><span>' + cfg.bo1_upset.toFixed(2) + '</span></div>' +
+    '<div><span>BO3 Weight</span><span>' + cfg.bo3_weight.toFixed(1) + '</span></div>' +
+    '<div><span>Rank Weight</span><span>' + cfg.weight_ranking.toFixed(2) + '</span></div>' +
+    '<div><span>Simulations</span><span>' + cfg.n_sims.toLocaleString() + '</span></div>' +
+    '<div><span>Runtime</span><span>' + elapsed + 's</span></div>';
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI: EXPORT CSV
+// ═══════════════════════════════════════════════════════
+function exportCSV() {
+  if (!results.length) {
+    alert('Run a simulation first to generate results.');
+    return;
+  }
+  let csv = 'Rank,Team,Advance%,ComputedRating,HLTVRank,AvgPlayerRating,WinRate3M\n';
+  const cfg = lastRunConfig || getCurrentConfig();
+  results.forEach(function(r, i) {
+    const data = DEFAULT_TEAMS[r.name];
+    const rating = computeRating(r.name, data, cfg, overrides);
+    const avgPlr = data.plr ? (data.plr.reduce(function(s,v){return s+v},0) / data.plr.length).toFixed(3) : '';
+    const wr = data.wr !== undefined ? data.wr.toFixed(3) : '';
+    csv += (i+1) + ',' + r.name + ',' + r.advance + ',' + rating + ',' + (data ? data.rank : '') + ',' + avgPlr + ',' + wr + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pickem_results_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INITIALIZATION
+// ═══════════════════════════════════════════════════════
+function init() {
+  onSlider();
+  renderTeams();
+  renderTeamData();
+}
+
+init();
+</script>
+
+</body>
+</html>
