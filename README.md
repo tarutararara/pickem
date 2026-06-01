@@ -3,14 +3,6 @@
 
 Monte Carlo simulation for IEM Cologne Major 2026 Stage 1 predictions. Uses real HLTV data (player Rating 3.0, 3-month win rates, world rankings) to compute each team's probability of advancing through the Swiss stage.
 
-## Quick Start
-
-**Option A -- Just open the file:**
-Double-click `pickem.html`. Runs entirely in your browser. No server, no install.
-
-**Option B -- Host online (free):**
-Upload to GitHub Pages or Netlify (see below).
-
 ## Features
 
 - **16 teams** with real HLTV data: player ratings, win rates, world rankings
