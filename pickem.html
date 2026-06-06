@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IEM Cologne Major 2026 — Stage 2 Simulator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#1b1f23;color:#c0c0c0;min-height:100vh;overflow-y:auto}
+a{color:#4fc3f7;text-decoration:none}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#1b1f23}
+::-webkit-scrollbar-thumb{background:#3a3f47;border-radius:3px}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:#2d3844;border-bottom:1px solid #3a414a;position:sticky;top:0;z-index:10}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-back{font-size:13px;color:#929a9e;cursor:pointer}
+.header-back:hover{color:#4fc3f7}
+.header-title{font-size:15px;font-weight:700;color:#fff}
+.header-right{display:flex;gap:8px}
+
+.btn{padding:7px 14px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s;white-space:nowrap}
+.btn-accent{background:#4fc3f7;border-color:#4fc3f7;color:#1b1f23}
+.btn-accent:hover{background:#3db8e0}
+.btn-dark{background:#3a3f47;border-color:#4a5058;color:#c0c0c0}
+.btn-dark:hover{background:#4a5058}
+.btn-green{background:#6bcb77;border-color:#6bcb77;color:#1b1f23}
+.btn-green:hover{background:#5ab868}
+.btn-red{background:#e55c5c;border-color:#e55c5c;color:#fff}
+.btn-red:hover{background:#d44a4a}
+.btn-sm{padding:3px 10px;font-size:11px}
+
+.param-bar{display:flex;align-items:flex-end;gap:14px;padding:10px 20px;background:#1b1f23;border-bottom:1px solid #2d333b;flex-wrap:wrap}
+.param-item{display:flex;flex-direction:column;gap:2px;min-width:90px;position:relative;cursor:help}
+.param-item label{font-size:10px;color:#929a9e;text-transform:uppercase;letter-spacing:.3px;display:flex;justify-content:space-between}
+.param-item label span{color:#4fc3f7;font-weight:700}
+.param-item input[type=range]{width:100%;accent-color:#4fc3f7;height:4px;cursor:pointer}
+.param-item:hover::after{content:attr(title);position:absolute;bottom:110%;left:0;background:#2d3844;color:#e0e0e0;padding:8px 12px;border-radius:6px;font-size:11px;line-height:1.5;white-space:normal;width:260px;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.5);border:1px solid #3d4854;pointer-events:none}
+.param-item:hover::before{content:'';position:absolute;bottom:100%;left:20px;border:6px solid transparent;border-top-color:#2d3844;z-index:101;pointer-events:none}
+.param-actions{display:flex;gap:6px;padding-bottom:2px;margin-left:auto}
+
+.progress-wrap{display:none;padding:8px 20px;background:#1b1f23;border-bottom:1px solid #2d333b}
+.progress-wrap.active{display:block}
+.progress-inner{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.progress-label{font-size:11px;color:#929a9e}
+.progress-bar{height:6px;background:#2d333b;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:#4fc3f7;width:0%;transition:width .1s linear;border-radius:3px}
+.progress-text{font-size:10px;color:#929a9e;text-align:right;margin-top:3px}
+
+.manual-hint{display:none;padding:10px 20px;background:rgba(226,185,75,.08);border-bottom:1px solid rgba(226,185,75,.2)}
+.manual-hint.active{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.manual-hint .hint-text{font-size:12px;font-weight:600;color:#e2b94b}
+.manual-hint .hint-detail{font-size:11px;color:#929a9e;flex:1}
+.manual-hint .hint-round{font-size:10px;color:#e2b94b;font-weight:600;background:rgba(226,185,75,.1);padding:2px 8px;border-radius:3px}
+
+.main-content{max-width:1400px;margin:0 auto;padding:0 20px 40px}
+
+.section-title{font-size:13px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid #2d333b}
+
+/* BRACKET */
+.bracket-grid{display:flex;gap:10px;overflow-x:auto;padding:4px 0 16px}
+.bracket-col{flex:1;min-width:190px;display:flex;flex-direction:column;gap:8px}
+.round-title{font-size:11px;font-weight:700;color:#929a9e;text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:5px 0;border-bottom:2px solid #2d333b;margin-bottom:2px}
+
+.pool-box{background:#21252b;border:1px solid #2d333b;border-radius:4px;overflow:hidden}
+.pool-box.advance{border-left:3px solid #6bcb77}
+.pool-box.eliminate{border-left:3px solid #e55c5c}
+.pool-header{padding:6px 10px;background:rgba(255,255,255,.025);border-bottom:1px solid #2d333b;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.pool-title{font-size:13px;font-weight:700;color:#fff}
+.pool-bo{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;color:#929a9e;background:rgba(255,255,255,.06)}
+.pool-bo.bo3{color:#e2b94b;background:rgba(226,185,75,.1)}
+.pool-matches{padding:2px 3px}
+
+.match-row{display:flex;align-items:center;padding:1px 0;gap:0}
+.match-vs{font-size:10px;color:#484f58;width:22px;text-align:center;flex-shrink:0}
+
+.team-slot{flex:1;display:flex;align-items:center;gap:5px;padding:4px 6px;background:rgba(255,255,255,.015);border:1px solid transparent;border-radius:3px;font-size:11px;font-weight:500;color:#c0c0c0;cursor:default;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .12s,border-color .12s;min-width:0}
+.team-slot.clickable{cursor:pointer}
+.team-slot.clickable:hover{background:rgba(79,195,247,.08);border-color:#4fc3f7}
+.team-slot.picked{background:rgba(107,203,119,.1);border-color:#6bcb77}
+.team-slot.loser{opacity:.4}
+.team-slot img{width:18px;height:18px;object-fit:contain;flex-shrink:0}
+.team-slot .seed{font-size:9px;color:#567;min-width:16px;flex-shrink:0}
+.team-slot .pick-check{margin-left:auto;font-size:10px;color:#6bcb77;flex-shrink:0}
+.team-slot .name-text{overflow:hidden;text-overflow:ellipsis}
+
+.prob-row{padding:3px 6px;display:flex;align-items:center;gap:5px;font-size:10px}
+.prob-row img{width:16px;height:16px;object-fit:contain;flex-shrink:0}
+.prob-row .prob-name{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prob-row .prob-pct{font-weight:700;color:#4fc3f7;flex-shrink:0}
+
+.pool-placeholder{padding:6px 10px;font-size:10px;color:#567;text-align:center;font-style:italic}
+
+.final-box{padding:3px 3px}
+.final-subtitle{font-size:10px;color:#929a9e;padding:3px 6px;font-weight:600;margin-top:2px}
+.final-row{display:flex;align-items:center;gap:5px;padding:3px 6px;font-size:10px}
+.final-row img{width:16px;height:16px;object-fit:contain}
+.final-row .rec-tag{font-size:9px;font-weight:700;margin-left:auto}
+.final-row .rec-tag.green{color:#6bcb77}
+.final-row .rec-tag.red{color:#e55c5c}
+
+/* TABLE */
+.results-section{overflow-x:auto}
+.teamdata-section{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid #2d333b}
+th{color:#929a9e;font-weight:600;background:#21252b;position:sticky;top:0;white-space:nowrap}
+td{color:#c0c0c0}
+tr:hover td{background:rgba(255,255,255,.02)}
+.team-cell{display:flex;align-items:center;gap:6px}
+.team-cell img{width:18px;height:18px;object-fit:contain}
+.team-cell span{font-size:12px;font-weight:500}
+.adv-pct{font-weight:700}
+.adv-pct.high{color:#6bcb77}
+.adv-pct.low{color:#e55c5c}
+@media(max-width:900px){.bracket-col{min-width:150px}.param-item{min-width:70px}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span class="header-back" onclick="scrollTo(0,0)">&#8592; Back</span>
+    <span class="header-title">IEM Cologne Major 2026 — Stage 2 Simulator</span>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-dark" id="btn-export-csv">Export CSV</button>
+    <button class="btn btn-dark" id="btn-reset-all">Reset</button>
+  </div>
+</header>
+
+<div class="param-bar" id="param-bar">
+  <div class="param-item" title="Number of full tournaments simulated. More = more stable results. 100k gives ~0.2% error margin. 10M available for screenshots."><label>Sims <span id="val-sims">100,000</span></label><input type="range" id="sims" min="5000" max="10000000" value="100000" step="1000"></div>
+  <div class="param-item" title="How much rating gaps matter in win probability. LOWER = bigger favorites, bigger upsets are rarer. At 4.0, a 0.1 rating gap = ~60% win chance for the stronger team."><label>Rating Scale <span id="val-rScale">4.0</span></label><input type="range" id="rScale" min="2" max="10" value="4" step="0.1"></div>
+  <div class="param-item" title="Extra random noise added to Best-of-1 match probabilities. BO1s are inherently volatile -- a hot pistol round can decide a map. 0 = pure rating-based. 0.08 = significant chaos. 0.15 = almost random."><label>BO1 Upset <span id="val-bo1Upset">0.040</span></label><input type="range" id="bo1Upset" min="0" max="0.15" value="0.04" step="0.005"></div>
+  <div class="param-item" title="How much a Best-of-3 amplifies the better team's edge. 1.0 = BO3 is just 3 separate BO1s. 2.0 = favorites dominate series decisively. Higher values make BO3 matches more predictable."><label>BO3 Weight <span id="val-bo3Weight">1.8</span></label><input type="range" id="bo3Weight" min="1" max="3" value="1.8" step="0.1"></div>
+  <div class="param-item" title="How much HLTV world ranking matters vs player stats & recent form. 1.0 = pure ranking (ignore player ratings and win rate). 0.0 = only player ratings & 3-month win rate matter."><label>Rank Weight <span id="val-rankWeight">0.80</span></label><input type="range" id="rankWeight" min="0" max="1" value="0.80" step="0.05"></div>
+  <div class="param-item" title="How much Stage 1 performance in THIS major boosts teams. 1.0 = 3-0 teams get full bonus. 2.0 = double the form boost. 0.0 = ignore Stage 1 results entirely. Invited teams always receive 0 bonus."><label>Form Weight <span id="val-formWeight">1.00</span></label><input type="range" id="formWeight" min="0" max="2" value="1" step="0.05"></div>
+  <div class="param-actions">
+    <button class="btn btn-accent" id="btn-run">Run Simulation</button>
+    <button class="btn btn-dark" id="btn-reset-params">Reset</button>
+  </div>
+</div>
+
+<div class="manual-hint" id="manual-hint">
+  <span class="hint-text">Manual Mode</span>
+  <span class="hint-round" id="hint-round">Round 1</span>
+  <span class="hint-detail">Click a team name to pick the winner. After all picks in the round, it auto-advances.</span>
+  <button class="btn btn-sm btn-dark" id="btn-clear-manual">Clear Picks</button>
+</div>
+
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-inner">
+    <span class="progress-label" id="progress-label">Running simulation...</span>
+    <button class="btn btn-sm btn-red" id="btn-cancel" style="display:none">Cancel</button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="progress-text" id="progress-text">0%</div>
+</div>
+
+<main class="main-content">
+  <section>
+    <div class="section-title">Swiss Bracket</div>
+    <div id="bracket"></div>
+  </section>
+  <section class="results-section">
+    <div class="section-title">Simulation Results</div>
+    <div id="results-body"><div style="font-size:12px;color:#929a9e;text-align:center;padding:40px 0;">Run a simulation to see results</div></div>
+  </section>
+  <section class="teamdata-section">
+    <div class="section-title">Team Data</div>
+    <div id="teamdata-body"></div>
+  </section>
+</main>
+
+<script>
+// ═══════ DATA ═══════
+const TEAMS={
+"FUT":{seed:1,rank:13,plr:[1.12,1.11,1.05,1.03,1.11],wr:0.579,stage1:null,logo:"Os71GAOy8KDuQFc0M8HE6O.png"},
+"Spirit":{seed:2,rank:3,plr:[1.18,1.05,1.03,1.09,1.39],wr:0.660,stage1:null,logo:"syrtYYKR7sBRw3ZHy1YFX7.png"},
+"Astralis":{seed:3,rank:12,plr:[0.89,1.08,1.06,1.08,1.02],wr:0.520,stage1:null,logo:"9bgXHp-oh1oaXr7F0mTGmd.svg"},
+"G2":{seed:4,rank:14,plr:[1.10,1.10,1.06,1.15,1.10],wr:0.550,stage1:null,logo:"zFLwAELOD15BjJSDMMNBWQ.png"},
+"Legacy":{seed:5,rank:7,plr:[0.97,1.20,1.18,1.03,1.10],wr:0.688,stage1:null,logo:"RWbHH6RA8uGwJurGeLFvSr.png"},
+"paiN":{seed:6,rank:18,plr:[1.01,1.12,1.05,1.00,1.01],wr:0.610,stage1:null,logo:"iUUCFwCOFmOrwhB8q8smMg.svg"},
+"Monte":{seed:7,rank:24,plr:[1.15,1.06,1.12,0.97,0.99],wr:0.570,stage1:null,logo:"2tc9n4fHkiRIX2FiJSkhgt.png"},
+"9z":{seed:8,rank:20,plr:[1.07,1.17,1.03,1.18,1.09],wr:0.660,stage1:null,logo:"COZDFWOIm41AT0srqOHFhM.png"},
+"B8":{seed:9,rank:15,plr:[1.16,0.99,1.04,1.03,0.98],wr:0.550,stage1:"3-0",logo:"O6nRWTCjUzBAR4pcOcrpSG.png"},
+"BetBoom":{seed:10,rank:17,plr:[1.06,1.16,0.98,1.10,1.01],wr:0.620,stage1:"3-0",logo:"G4ZrdB0-q41USPd_z27IQA.png"},
+"GamerLegion":{seed:11,rank:11,plr:[1.04,1.10,1.13,1.03,0.89],wr:0.580,stage1:"3-1",logo:"vN7O46QoQ346WIRZ8D3spC.png"},
+"M80":{seed:12,rank:24,plr:[1.13,1.14,1.06,1.15,1.04],wr:0.556,stage1:"3-1",logo:"YsaWwP_VrkbHzuhszuANEK.png"},
+"MIBR":{seed:13,rank:20,plr:[1.08,1.20,1.25,1.02,1.06],wr:0.700,stage1:"3-2",logo:"sVnH-oAf1J5TnMwoY4cxUC.png"},
+"TYLOO":{seed:14,rank:29,plr:[1.19,1.09,1.12,1.12,1.08],wr:0.610,stage1:"3-2",logo:"hMPKtNMDxp07n3lrBEHCuq.svg"},
+"BIG":{seed:15,rank:38,plr:[1.10,1.10,1.17,1.25,1.06],wr:0.660,stage1:"3-2",logo:"OgMRQA35hopXA8kDwMFHIY.svg"},
+"FlyQuest":{seed:16,rank:56,plr:[1.09,1.08,1.04,1.13,1.13],wr:0.583,stage1:"3-2",logo:"fmqTgF6Ziw0uied7MO3_ri.png"}};
+const R1=[["FUT","B8"],["Spirit","BetBoom"],["Astralis","GamerLegion"],["G2","M80"],["Legacy","MIBR"],["paiN","TYLOO"],["Monte","BIG"],["9z","FlyQuest"]];
+const teamNames=Object.keys(TEAMS);
+const POOL_KEYS=['10','01','20','11','02','21','12','22'];
+
+function logoUrl(t){return"https://img-cdn.hltv.org/teamlogo/"+TEAMS[t].logo+"?ixlib=java-2.1.0&w=100";}
+
+// ═══════ COMPUTE RATING ═══════
+function computeRating(name,rankWeight,formWeight){
+  var d=TEAMS[name],k=Math.log(1.50/0.75)/74*rankWeight,base=1.50*Math.exp(-k*(d.rank-1)),adj=0;
+  if(d.plr){var avg=d.plr.reduce(function(a,b){return a+b})/d.plr.length;adj+=(avg-1.05)*0.04;adj+=(d.wr-0.50)*0.03;}
+  adj+=(d.seed<=8?(9-d.seed):0)*0.003;
+  if(d.stage1==="3-0")adj+=0.020*formWeight;else if(d.stage1==="3-1")adj+=0.010*formWeight;else if(d.stage1==="3-2")adj+=0.005*formWeight;
+  return parseFloat((base+adj).toFixed(4));
+}
+
+// ═══════ SWISS SIMULATION ═══════
+function runSwiss(ratings,rScale,bo1Upset,bo3Weight,manualPicks,track){
+  var rec={};teamNames.forEach(function(t){rec[t]={w:0,l:0}});
+  var played={};teamNames.forEach(function(t){played[t]={}});
+  function sim(a,b,isBO3){
+    var p=1/(1+Math.exp(-rScale*(ratings[a]-ratings[b])));
+    if(isBO3)p=0.5+(p-0.5)*bo3Weight;
+    else p+=(Math.random()*2-1)*bo1Upset;
+    var aWins=Math.random()<Math.max(0.01,Math.min(0.99,p));
+    if(aWins){rec[a].w++;rec[b].l++;}else{rec[b].w++;rec[a].l++;}
+    played[a][b]=true;played[b][a]=true;
+    return aWins?a:b;
+  }
+  function getActive(){return teamNames.filter(function(t){return rec[t].w<3&&rec[t].l<3});}
+  function getPool(w,l){return getActive().filter(function(t){return rec[t].w===w&&rec[t].l===l});}
+  function pair(pool){
+    var s=pool.slice().sort(function(a,b){return TEAMS[a].seed-TEAMS[b].seed});
+    var n=s.length,h=Math.floor(n/2),r=[],paired={};
+    // Fold pairing: top half vs bottom half, avoiding rematches
+    for(var i=0;i<h;i++){
+      var found=false;
+      for(var j=n-1;j>=h;j--){
+        if(paired[s[j]])continue;
+        if(!played[s[i]][s[j]]){
+          r.push([s[i],s[j]]);paired[s[i]]=paired[s[j]]=true;found=true;break;
+        }
+      }
+      if(!found){
+        // Fallback: pair with closest available
+        for(j=h;j<n;j++){
+          if(!paired[s[j]]){
+            r.push([s[i],s[j]]);paired[s[i]]=paired[s[j]]=true;break;
+          }
+        }
+      }
+    }
+    // Force-pair any unpaired (should be rare)
+    var left=[];
+    for(i=0;i<n;i++){if(!paired[s[i]])left.push(s[i]);}
+    for(i=0;i+1<left.length;i+=2)r.push([left[i],left[i+1]]);
+    return r;
+  }
+  function recordPool(w,l){if(!track)return;var k=w+'-'+l;track.pools[k]=getPool(w,l).slice();}
+
+  // Round 1
+  if(track)track.r1wins={};
+  for(var i=0;i<R1.length;i++){
+    var a=R1[i][0],b=R1[i][1],w;
+    if(manualPicks&&manualPicks[a+'_'+b]!==undefined){w=manualPicks[a+'_'+b];var l=w===a?b:a;rec[w].w++;rec[l].l++;}
+    else w=sim(a,b,false);
+    if(track)track.r1wins[w]=true;
+  }
+  recordPool(1,0);recordPool(0,1);
+
+  // Round 2
+  var p10=getPool(1,0);for(i=0;i<pair(p10).length;i++){var m=pair(p10)[i];sim(m[0],m[1],false);}
+  var p01=getPool(0,1);for(i=0;i<pair(p01).length;i++){var m2=pair(p01)[i];sim(m2[0],m2[1],false);}
+  recordPool(2,0);recordPool(1,1);recordPool(0,2);
+
+  // Round 3
+  var p20=getPool(2,0);for(i=0;i<pair(p20).length;i++){var m3=pair(p20)[i];sim(m3[0],m3[1],true);}
+  var p11=getPool(1,1);for(i=0;i<pair(p11).length;i++){var m4=pair(p11)[i];sim(m4[0],m4[1],false);}
+  var p02=getPool(0,2);for(i=0;i<pair(p02).length;i++){var m5=pair(p02)[i];sim(m5[0],m5[1],true);}
+  recordPool(2,1);recordPool(1,2);
+
+  // Round 4
+  var p21=getPool(2,1);for(i=0;i<pair(p21).length;i++){var m6=pair(p21)[i];sim(m6[0],m6[1],true);}
+  var p12=getPool(1,2);for(i=0;i<pair(p12).length;i++){var m7=pair(p12)[i];sim(m7[0],m7[1],true);}
+  recordPool(2,2);
+
+  // Round 5
+  var p22=getPool(2,2);for(i=0;i<pair(p22).length;i++){var m8=pair(p22)[i];sim(m8[0],m8[1],true);}
+
+  return rec;
+}
+
+// ═══════ STATE ═══════
+var simResults=null,simTotalSims=0,simRatings=null;
+var manualPicks={},manualRound=1,manualRecords={},manualPoolHistory={};
+var running=false,cancelFlag=false;
+
+function mRec(t){return manualRecords[t]||{w:0,l:0};}
+function manualPoolTeams(w,l){return teamNames.filter(function(t){var r=mRec(t);return r.w===w&&r.l===l});}
+function manualPair(list){var s=list.slice().sort(function(a,b){return TEAMS[a].seed-TEAMS[b].seed}),n=s.length,h=Math.floor(n/2),r=[];for(var i=0;i<h;i++)r.push([s[i],s[n-1-i]]);if(n%2)r.push([s[h],null]);return r;}
+function poolRound(w,l){if(w===0&&l===0)return 1;return w+l+1;}
+function roundPools(rnd){if(rnd===1)return[[0,0]];if(rnd===2)return[[1,0],[0,1]];if(rnd===3)return[[2,0],[1,1],[0,2]];if(rnd===4)return[[2,1],[1,2]];if(rnd===5)return[[2,2]];return[];}
+
+function manualAdvanceRound(){
+  // Record pool history BEFORE applying picks (teams going INTO this round)
+  var pools=roundPools(manualRound);
+  for(var i=0;i<pools.length;i++){
+    var w=pools[i][0],l=pools[i][1],key=w+'-'+l;
+    manualPoolHistory[key]=manualPoolTeams(w,l).slice();
+  }
+  // Also record 0-0 on round 1
+  if(manualRound===1)manualPoolHistory['0-0']=teamNames.slice();
+
+  // Apply picks to records
+  var keys=Object.keys(manualPicks);
+  for(i=0;i<keys.length;i++){
+    var k=keys[i],winner=manualPicks[k],parts=k.split('_'),a=parts[0],b=parts[1];
+    if(!manualRecords[a])manualRecords[a]={w:0,l:0};
+    if(!manualRecords[b])manualRecords[b]={w:0,l:0};
+    if(winner===a){manualRecords[a].w++;manualRecords[b].l++;}
+    else{manualRecords[b].w++;manualRecords[a].l++;}
+  }
+  // Record post-round pool state (teams going into next round)
+  var nextRound=manualRound+1;
+  if(nextRound<=5){
+    var nextPools=roundPools(nextRound);
+    for(var j=0;j<nextPools.length;j++){
+      var nw=nextPools[j][0],nl=nextPools[j][1];
+      var nteams=manualPoolTeams(nw,nl).slice();
+      if(nteams.length>0)manualPoolHistory[nw+'-'+nl]=nteams;
+    }
+  }
+  manualPicks={};
+  manualRound++;
+  if(manualRound>5){simResults=null;simTotalSims=0;}
+  renderBracket();
+  updateManualHint();
+}
+
+function resetAllManual(){
+  manualPicks={};manualRecords={};manualRound=1;manualPoolHistory={};
+  renderBracket();updateManualHint();
+}
+function updateManualHint(){
+  var hint=document.getElementById('manual-hint'),roundEl=document.getElementById('hint-round');
+  var hasPicks=Object.keys(manualPicks).length>0||Object.keys(manualRecords).length>0;
+  if(hasPicks){
+    hint.classList.add('active');
+    if(manualRound<=5)roundEl.textContent='Round '+manualRound;
+    else roundEl.textContent='Complete';
+  }else{hint.classList.remove('active');}
+}
+
+// ═══════ RENDER BRACKET ═══════
+function renderBracket(){
+  var el=document.getElementById('bracket');
+  var hasResults=simResults!==null&&simTotalSims>0;
+  var isManual=Object.keys(manualPicks).length>0||Object.keys(manualRecords).length>0||manualRound>1;
+  var mode=hasResults?'postsim':(isManual?'manual':'presim');
+
+  var columns=[
+    {title:'ROUND 1',pools:[[0,0,1,'0-0',false,false]]},
+    {title:'ROUND 2',pools:[[1,0,1,'1-0',false,false],[0,1,1,'0-1',false,false]]},
+    {title:'ROUND 3',pools:[[2,0,3,'2-0',true,false],[1,1,1,'1-1',false,false],[0,2,3,'0-2',false,true]]},
+    {title:'ROUND 4',pools:[[2,1,3,'2-1',true,false],[1,2,3,'1-2',false,true]]},
+    {title:'ROUND 5 / RESULTS',pools:[[2,2,3,'2-2',false,false]],isFinal:true}
+  ];
+
+  var html='<div class="bracket-grid">';
+  for(var ci=0;ci<columns.length;ci++){
+    var col=columns[ci];
+    html+='<div class="bracket-col">';
+    html+='<div class="round-title">'+col.title+'</div>';
+    for(var pi=0;pi<col.pools.length;pi++){
+      var p=col.pools[pi];
+      html+=renderPoolBox(p[0],p[1],p[2],p[3],p[4],p[5],mode);
+    }
+    if(col.isFinal)html+=renderFinalPools(mode);
+    html+='</div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+  bindBracketClicks();
+}
+
+function renderPoolBox(w,l,bo,label,adv,elim,mode){
+  var boTag=bo===3?'BO3':'BO1',boCls=bo===3?' bo3':'';
+  var cls='pool-box'+(adv?' advance':'')+(elim?' eliminate':'');
+  var content='';
+
+  // Always show clickable R1 matchups in bracket, even in presim mode
+  if(w===0&&l===0){
+    if(mode==='manual'||manualRound===1){
+      content=renderCurrentPool(0,0,1);
+    }else{
+      content=renderR1Static();
+    }
+  }else if(mode==='presim'&&!(w===0&&l===0)){
+    var cnts={'10':4,'01':4,'20':2,'11':4,'02':2,'21':3,'12':3,'22':3};
+    content='<div class="pool-placeholder">'+((cnts[w+''+l]||'?')+' matches — TBD')+'</div>';
+  }else if(mode==='manual'){
+    var pr=poolRound(w,l);
+    if(pr<manualRound)content=renderPastPool(w,l);
+    else if(pr===manualRound)content=renderCurrentPool(w,l,bo);
+    else content='<div class="pool-placeholder">—</div>';
+  }else if(mode==='postsim'){
+    content=renderPostsimPool(w+''+l);
+  }
+
+  return '<div class="'+cls+'">'
+    +'<div class="pool-header"><span class="pool-title">'+label+'</span><span class="pool-bo'+boCls+'">'+boTag+'</span></div>'
+    +'<div class="pool-matches">'+content+'</div>'
+    +'</div>';
+}
+
+function renderR1Static(){
+  var html='';
+  for(var i=0;i<R1.length;i++){
+    var a=R1[i][0],b=R1[i][1],key=a+'_'+b;
+    var picked=manualPicks[key]||null;
+    // Always show R1 as clickable to start manual mode
+    html+='<div class="match-row">'
+      +manualTeamSlot(a,key,picked)+'<span class="match-vs">vs</span>'+manualTeamSlot(b,key,picked)
+      +'</div>';
+  }
+  return html;
+}
+function teamSlotHtml(team,extraCls){
+  return '<div class="team-slot '+extraCls+'">'
+    +'<img src="'+logoUrl(team)+'" onerror="this.style.display=\'none\'">'
+    +'<span class="seed">#'+TEAMS[team].seed+'</span>'
+    +'<span class="name-text">'+team+'</span>'
+    +'</div>';
+}
+
+function renderPastPool(w,l){
+  if(w===0&&l===0){
+    var winners=manualPoolHistory['1-0']||[];
+    var html='';
+    for(var i=0;i<R1.length;i++){
+      var a=R1[i][0],b=R1[i][1];
+      var aW=winners.indexOf(a)>=0,bW=winners.indexOf(b)>=0;
+      html+='<div class="match-row">'
+        +'<div class="team-slot'+(aW?' picked':'')+(bW?' loser':'')+'">'
+        +'<img src="'+logoUrl(a)+'" onerror="this.style.display=\'none\'">'
+        +'<span class="seed">#'+TEAMS[a].seed+'</span>'
+        +'<span class="name-text">'+a+'</span>'
+        +(aW?'<span class="pick-check">&#10003;</span>':'')
+        +'</div>'
+        +'<span class="match-vs">vs</span>'
+        +'<div class="team-slot'+(bW?' picked':'')+(aW?' loser':'')+'">'
+        +'<img src="'+logoUrl(b)+'" onerror="this.style.display=\'none\'">'
+        +'<span class="seed">#'+TEAMS[b].seed+'</span>'
+        +'<span class="name-text">'+b+'</span>'
+        +(bW?'<span class="pick-check">&#10003;</span>':'')
+        +'</div>'
+        +'</div>';
+    }
+    return html;
+  }
+  var key=w+'-'+l,teams=manualPoolHistory[key]||[];
+  if(!teams.length)return '<div class="pool-placeholder">—</div>';
+  var html='';
+  for(var i=0;i<teams.length;i++)html+=teamSlotHtml(teams[i],'');
+  return html;
+}
+
+function renderCurrentPool(w,l,bo){
+  if(w===0&&l===0){
+    // Always use R1 matchups for 0-0 pool
+    var html='';
+    for(var i=0;i<R1.length;i++){
+      var a=R1[i][0],b=R1[i][1],key=a+'_'+b;
+      var picked=manualPicks[key]||null;
+      html+='<div class="match-row">'
+        +manualTeamSlot(a,key,picked)
+        +'<span class="match-vs">vs</span>'
+        +manualTeamSlot(b,key,picked)
+        +'</div>';
+    }
+    return html;
+  }
+  var poolTeams=manualPoolTeams(w,l);
+  if(poolTeams.length<2)return '<div class="pool-placeholder">Waiting...</div>';
+  var pairs=manualPair(poolTeams);
+  var html='';
+  for(var i=0;i<pairs.length;i++){
+    var a=pairs[i][0],b=pairs[i][1],key=a+'_'+b;
+    var picked=manualPicks[key]||null;
+    html+='<div class="match-row">'
+      +manualTeamSlot(a,key,picked)
+      +'<span class="match-vs">vs</span>'
+      +manualTeamSlot(b,key,picked)
+      +'</div>';
+  }
+  return html;
+}
+
+function manualTeamSlot(team,key,picked){
+  var cls='team-slot clickable';
+  if(picked===team)cls+=' picked';
+  else if(picked&&picked!==team)cls+=' loser';
+  var check=picked===team?'<span class="pick-check">&#10003;</span>':'';
+  return '<div class="'+cls+'" data-key="'+key+'" data-team="'+team+'">'
+    +'<img src="'+logoUrl(team)+'" onerror="this.style.display=\'none\'">'
+    +'<span class="seed">#'+TEAMS[team].seed+'</span>'
+    +'<span class="name-text">'+team+'</span>'
+    +check
+    +'</div>';
+}
+
+function renderPostsimPool(poolKey){
+  var field='p'+poolKey;
+  var teams=teamNames.slice().filter(function(t){return simResults[t]&&(simResults[t][field]||0)>0})
+    .sort(function(a,b){return(simResults[b][field]||0)-(simResults[a][field]||0)});
+  if(!teams.length)return '<div class="pool-placeholder">—</div>';
+  var html='';
+  for(var i=0;i<teams.length;i++){
+    var t=teams[i],pct=((simResults[t][field]||0)/simTotalSims*100).toFixed(1);
+    html+='<div class="prob-row">'
+      +'<img src="'+logoUrl(t)+'" onerror="this.style.display=\'none\'">'
+      +'<span class="prob-name">'+t+' <span style="color:#567;font-size:9px">#'+TEAMS[t].seed+'</span></span>'
+      +'<span class="prob-pct">'+pct+'%</span>'
+      +'</div>';
+  }
+  return html;
+}
+
+function renderFinalPools(mode){
+  var advRecs=[['3-0','r30','green'],['3-1','r31','green'],['3-2','r32','green']];
+  var elimRecs=[['2-3','r23','red'],['1-3','r13','red'],['0-3','r03','red']];
+  var html='';
+  html+='<div class="pool-box advance"><div class="pool-header"><span class="pool-title">ADVANCE TO STAGE 3</span></div><div class="final-box">';
+  for(var i=0;i<advRecs.length;i++)html+=renderFinalGroup(advRecs[i][0],advRecs[i][1],advRecs[i][2],mode);
+  html+='</div></div>';
+  html+='<div class="pool-box eliminate"><div class="pool-header"><span class="pool-title">ELIMINATED</span></div><div class="final-box">';
+  for(i=0;i<elimRecs.length;i++)html+=renderFinalGroup(elimRecs[i][0],elimRecs[i][1],elimRecs[i][2],mode);
+  html+='</div></div>';
+  return html;
+}
+
+function renderFinalGroup(label,field,color,mode){
+  var teams=[];
+  if(mode==='manual'){
+    teams=teamNames.filter(function(t){
+      var r=mRec(t);
+      if(field==='r30')return r.w===3&&r.l===0;if(field==='r31')return r.w===3&&r.l===1;
+      if(field==='r32')return r.w===3&&r.l===2;if(field==='r23')return r.w===2&&r.l===3;
+      if(field==='r13')return r.w===1&&r.l===3;if(field==='r03')return r.w===0&&r.l===3;
+      return false;
+    }).sort(function(a,b){return TEAMS[a].seed-TEAMS[b].seed});
+  }else if(mode==='postsim'){
+    teams=teamNames.filter(function(t){return simResults[t]&&(simResults[t][field]||0)>0})
+      .sort(function(a,b){return(simResults[b][field]||0)-(simResults[a][field]||0)});
+  }
+  if(!teams.length)return '';
+  var html='<div class="final-subtitle">'+label+'</div>';
+  for(var i=0;i<teams.length;i++){
+    var t=teams[i],val='';
+    if(mode==='manual'){var r=mRec(t);val=r.w+'-'+r.l;}
+    else val=((simResults[t][field]||0)/simTotalSims*100).toFixed(1)+'%';
+    html+='<div class="final-row">'
+      +'<img src="'+logoUrl(t)+'" onerror="this.style.display=\'none\'">'
+      +'<span>'+t+' <span style="color:#567;font-size:9px">#'+TEAMS[t].seed+'</span></span>'
+      +'<span class="rec-tag '+color+'">'+val+'</span>'
+      +'</div>';
+  }
+  return html;
+}
+
+function bindBracketClicks(){
+  var slots=document.querySelectorAll('.team-slot.clickable');
+  for(var i=0;i<slots.length;i++){
+    slots[i].addEventListener('click',function(){
+      var key=this.dataset.key,team=this.dataset.team;
+      if(!key)return;
+      manualPicks[key]=team;
+      updateManualHint();
+      // Check if all matchups in current round picked
+      var matchups=getManualMatchups(manualRound);
+      var allPicked=true;
+      for(var j=0;j<matchups.length;j++){
+        if(!manualPicks[matchups[j][0]+'_'+matchups[j][1]]){allPicked=false;break;}
+      }
+      if(allPicked&&manualRound<=5){manualAdvanceRound();}
+      else{renderBracket();renderManualTab();}
+    });
+  }
+}
+function getManualMatchups(round){
+  if(round===1)return R1.slice();
+  var pools=roundPools(round),all=[];
+  for(var i=0;i<pools.length;i++){
+    var w=pools[i][0],l=pools[i][1];
+    if(w===0&&l===0){all=all.concat(R1);continue;}
+    var pts=manualPoolTeams(w,l);
+    if(pts.length>=2)all=all.concat(manualPair(pts));
+  }
+  return all;
+}
+
+// ═══════ RENDER RESULTS ═══════
+function renderResults(){
+  var el=document.getElementById('results-body');
+  if(!simResults||simTotalSims===0){
+    el.innerHTML='<div style="font-size:12px;color:#929a9e;text-align:center;padding:40px 0;">Run a simulation to see results</div>';
+    return;
+  }
+  var sorted=teamNames.slice().sort(function(a,b){
+    var aA=(simResults[a].r30+simResults[a].r31+simResults[a].r32)/simTotalSims;
+    var bA=(simResults[b].r30+simResults[b].r31+simResults[b].r32)/simTotalSims;
+    return bA-aA;
+  });
+  var html='<table><thead><tr><th>#</th><th>Team</th><th>Seed</th><th>Rating</th><th>Stage 1</th><th>Advance%</th>'
+    +'<th>3-0</th><th>3-1</th><th>3-2</th><th>2-3</th><th>1-3</th><th>0-3</th></tr></thead><tbody>';
+  for(var i=0;i<sorted.length;i++){
+    var t=sorted[i],r=simResults[t];
+    var adv=((r.r30+r.r31+r.r32)/simTotalSims*100).toFixed(1);
+    var rt=simRatings?simRatings[t].toFixed(4):computeRating(t,0.8,1.0).toFixed(4);
+    html+='<tr><td>'+(i+1)+'</td>';
+    html+='<td><div class="team-cell"><img src="'+logoUrl(t)+'" onerror="this.style.display=\'none\'"><span>'+t+'</span></div></td>';
+    html+='<td>'+TEAMS[t].seed+'</td><td>'+rt+'</td><td>'+(TEAMS[t].stage1||'-')+'</td>';
+    html+='<td><span class="adv-pct '+(parseFloat(adv)>50?'high':'low')+'">'+adv+'%</span></td>';
+    html+='<td>'+fmtPct(r.r30)+'</td><td>'+fmtPct(r.r31)+'</td><td>'+fmtPct(r.r32)+'</td>';
+    html+='<td>'+fmtPct(r.r23)+'</td><td>'+fmtPct(r.r13)+'</td><td>'+fmtPct(r.r03)+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+function fmtPct(n){return(n/simTotalSims*100).toFixed(1)+'%';}
+
+// ═══════ RENDER TEAM DATA ═══════
+function renderTeamData(ratings){
+  var el=document.getElementById('teamdata-body');
+  var sorted=teamNames.slice().sort(function(a,b){return TEAMS[a].seed-TEAMS[b].seed});
+  var html='<table><thead><tr><th>Team</th><th>Seed</th><th>Rank</th><th>Rating</th><th>PLR Avg</th><th>WR</th><th>Stage 1</th></tr></thead><tbody>';
+  for(var i=0;i<sorted.length;i++){
+    var t=sorted[i],d=TEAMS[t];
+    var plrAvg=d.plr?(d.plr.reduce(function(a,b){return a+b})/d.plr.length).toFixed(2):'N/A';
+    var rt=ratings?ratings[t].toFixed(4):computeRating(t,0.8,1.0).toFixed(4);
+    html+='<tr>';
+    html+='<td><div class="team-cell"><img src="'+logoUrl(t)+'" onerror="this.style.display=\'none\'"><span>'+t+'</span></div></td>';
+    html+='<td>'+d.seed+'</td><td>'+d.rank+'</td><td>'+rt+'</td>';
+    html+='<td>'+plrAvg+'</td><td>'+d.wr.toFixed(3)+'</td><td>'+(d.stage1||'-')+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+// ═══════ MONTE CARLO ═══════
+function runMonteCarlo(){
+  if(running)return;
+  running=true;cancelFlag=false;
+  var simCount=parseInt(document.getElementById('sims').value);
+  var rScale=parseFloat(document.getElementById('rScale').value);
+  var bo1Upset=parseFloat(document.getElementById('bo1Upset').value);
+  var bo3Weight=parseFloat(document.getElementById('bo3Weight').value);
+  var rankWeight=parseFloat(document.getElementById('rankWeight').value);
+  var formWeight=parseFloat(document.getElementById('formWeight').value);
+
+  var ratings={};teamNames.forEach(function(t){ratings[t]=computeRating(t,rankWeight,formWeight)});
+  simRatings=ratings;
+
+  var agg={};
+  teamNames.forEach(function(t){
+    agg[t]={r30:0,r31:0,r32:0,r23:0,r13:0,r03:0,total:0,r1win:0};
+    for(var k=0;k<POOL_KEYS.length;k++)agg[t]['p'+POOL_KEYS[k]]=0;
+  });
+
+  var pw=document.getElementById('progress-wrap'),pf=document.getElementById('progress-fill');
+  var pt=document.getElementById('progress-text'),pl=document.getElementById('progress-label');
+  var br=document.getElementById('btn-run'),bc=document.getElementById('btn-cancel');
+
+  pw.classList.add('active');br.style.display='none';bc.style.display='inline-block';
+  pl.textContent='Running simulation...';
+
+  var chunkSize=Math.min(1000,Math.max(100,Math.floor(simCount/100)));
+  var completed=0;
+
+  function processChunk(){
+    if(cancelFlag){finish();return;}
+    var end=Math.min(completed+chunkSize,simCount);
+    for(var i=completed;i<end;i++){
+      var picks=Object.keys(manualPicks).length>0?manualPicks:undefined;
+      var track={pools:{}};
+      var rec=runSwiss(ratings,rScale,bo1Upset,bo3Weight,picks,track);
+      for(var j=0;j<teamNames.length;j++){
+        var t=teamNames[j],r=rec[t];agg[t].total++;
+        if(r.w===3&&r.l===0)agg[t].r30++;
+        else if(r.w===3&&r.l===1)agg[t].r31++;
+        else if(r.w===3&&r.l===2)agg[t].r32++;
+        else if(r.w===2&&r.l===3)agg[t].r23++;
+        else if(r.w===1&&r.l===3)agg[t].r13++;
+        else if(r.w===0&&r.l===3)agg[t].r03++;
+        if(track.r1wins&&track.r1wins[t])agg[t].r1win++;
+        for(var k=0;k<POOL_KEYS.length;k++){
+          var wk=POOL_KEYS[k][0],lk=POOL_KEYS[k][1];
+          if(track.pools[wk+'-'+lk]&&track.pools[wk+'-'+lk].indexOf(t)>=0)agg[t]['p'+POOL_KEYS[k]]++;
+        }
+      }
+    }
+    completed=end;
+    var pct=Math.round(completed/simCount*100);
+    pf.style.width=pct+'%';pt.textContent=pct+'% ('+completed.toLocaleString()+' / '+simCount.toLocaleString()+')';
+    if(completed<simCount)setTimeout(processChunk,0);else finish();
+  }
+
+  function finish(){
+    running=false;pw.classList.remove('active');br.style.display='inline-block';bc.style.display='none';
+    simResults=agg;simTotalSims=simCount;
+    renderBracket();renderResults();
+  }
+
+  bc.onclick=function(){cancelFlag=true;};
+  setTimeout(processChunk,10);
+}
+
+// ═══════ EXPORT CSV ═══════
+function exportCSV(){
+  if(!simResults||simTotalSims===0)return;
+  var sorted=teamNames.slice().sort(function(a,b){
+    var aA=(simResults[a].r30+simResults[a].r31+simResults[a].r32)/simTotalSims;
+    var bA=(simResults[b].r30+simResults[b].r31+simResults[b].r32)/simTotalSims;
+    return bA-aA;
+  });
+  var rw=parseFloat(document.getElementById('rankWeight').value);
+  var fw=parseFloat(document.getElementById('formWeight').value);
+  var csv='Team,Seed,Rating,Advance%,3-0,3-1,3-2,2-3,1-3,0-3\n';
+  for(var i=0;i<sorted.length;i++){
+    var t=sorted[i],r=simResults[t];
+    var rt=computeRating(t,rw,fw),adv=((r.r30+r.r31+r.r32)/simTotalSims*100).toFixed(1);
+    csv+=t+','+TEAMS[t].seed+','+rt.toFixed(4)+','+adv+'%,'
+      +fmtPct(r.r30)+','+fmtPct(r.r31)+','+fmtPct(r.r32)+','
+      +fmtPct(r.r23)+','+fmtPct(r.r13)+','+fmtPct(r.r03)+'\n';
+  }
+  var blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='pickem_results.csv';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════ RESET ═══════
+function fullReset(){
+  simResults=null;simTotalSims=0;simRatings=null;
+  resetAllManual();renderBracket();renderResults();renderTeamData(null);
+}
+
+// ═══════ INIT ═══════
+function init(){
+  var sliders={
+    sims:function(v){return Number(v).toLocaleString()},
+    rScale:function(v){return parseFloat(v).toFixed(1)},
+    bo1Upset:function(v){return parseFloat(v).toFixed(3)},
+    bo3Weight:function(v){return parseFloat(v).toFixed(1)},
+    rankWeight:function(v){return parseFloat(v).toFixed(2)},
+    formWeight:function(v){return parseFloat(v).toFixed(2)}
+  };
+  var ids=Object.keys(sliders);
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i],el=document.getElementById(id),val=document.getElementById('val-'+id);
+    el.addEventListener('input',function(e){
+      var sid=e.target.id,vid='val-'+sid;
+      document.getElementById(vid).textContent=sliders[sid](e.target.value);
+    });
+  }
+  document.getElementById('btn-run').addEventListener('click',runMonteCarlo);
+  document.getElementById('btn-export-csv').addEventListener('click',exportCSV);
+  document.getElementById('btn-reset-params').addEventListener('click',fullReset);
+  document.getElementById('btn-reset-all').addEventListener('click',fullReset);
+  document.getElementById('btn-clear-manual').addEventListener('click',function(){resetAllManual()});
+
+  var defaultRatings={};teamNames.forEach(function(t){defaultRatings[t]=computeRating(t,0.8,1.0)});
+  renderBracket();renderTeamData(defaultRatings);
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
